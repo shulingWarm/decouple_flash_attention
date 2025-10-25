@@ -119,6 +119,14 @@ int main() {
     softmax_lse.reset_shape({q.shape[0], q.shape[1], q.shape[2]}, SimpleTensor::DataType::FP32);
     softmax_lse.to_cuda();
     flash::Flash_fwd_params params;
+    init_params(params,q,k,v,o,softmax_lse);
     run_mha_fwd_hdim128<cutlass::bfloat16_t, false>(params, nullptr);
+    // 把output转换到cpu上
+    o.to_cpu();
+    // 打印output的前10个元素
+    for (int i = 0; i < 10; i++) {
+        std::cout << ((float*)o.data_ptr)[i] << " ";
+    }
+    std::cout << std::endl;
     return 0;
 }

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cuda_runtime.h> // 包含CUDA运行时头文件
+#include "cuda_check.h" // 包含CUDA错误检查头文件
 
 class SimpleTensor {
 public:
@@ -33,7 +34,7 @@ public:
             delete[] data_ptr;
         }
         if (cuda_ptr != nullptr) {
-            cudaFree(cuda_ptr); // 释放CUDA内存
+            cuda_check(cudaFree(cuda_ptr)); // 释放CUDA内存
         }
     }
 
@@ -54,7 +55,7 @@ public:
             delete[] data_ptr; 
         }
         if (cuda_ptr != nullptr) {
-            cudaFree(cuda_ptr);
+            cuda_check(cudaFree(cuda_ptr));
             cuda_ptr = nullptr;
         }
         data_ptr = new char[total_elem_num * get_elem_size(this->data_type)];
@@ -83,10 +84,26 @@ public:
         return stride;
     }
 
+    // Copy data from CUDA device memory to host memory
+    void to_cpu() {
+        if (cuda_ptr == nullptr) {
+            return; // No CUDA memory to copy from
+        }
+        
+        uint32_t total_elem_num = get_elem_num();
+        if (total_elem_num == 0) {
+            return; // Empty tensor
+        }
+        
+        size_t total_bytes = static_cast<size_t>(total_elem_num) * get_elem_size(data_type);
+        // Copy data from device to host
+        cuda_check(cudaMemcpy(data_ptr, cuda_ptr, total_bytes, cudaMemcpyDeviceToHost));
+    }
+
     // 将数据复制到CUDA设备内存
     void to_cuda() {
         if (cuda_ptr != nullptr) {
-            cudaFree(cuda_ptr); // 如果已有CUDA内存，先释放
+            cuda_check(cudaFree(cuda_ptr)); // 如果已有CUDA内存，先释放
         }
         
         uint32_t total_elem_num = get_elem_num();
@@ -96,10 +113,10 @@ public:
         }
         
         size_t total_bytes = static_cast<size_t>(total_elem_num) * get_elem_size(data_type);
-        cudaMalloc(&cuda_ptr, total_bytes); // 分配CUDA内存
+        cuda_check(cudaMalloc(&cuda_ptr, total_bytes)); // 分配CUDA内存
         
         // 将数据从主机复制到设备
-        cudaMemcpy(cuda_ptr, data_ptr, total_bytes, cudaMemcpyHostToDevice);
+        cuda_check(cudaMemcpy(cuda_ptr, data_ptr, total_bytes, cudaMemcpyHostToDevice));
     }
 
     // 获取CUDA设备指针
