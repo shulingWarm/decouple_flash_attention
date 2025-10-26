@@ -7,6 +7,7 @@
 #include "flash.h"
 #include"simple_tensor.h"
 #include<cmath>
+#include"profile/time_profile.h"
 
 void init_params(flash::Flash_fwd_params& params,
     SimpleTensor& q,
@@ -198,6 +199,19 @@ int main() {
     run_mha_fwd_hdim128<cutlass::bfloat16_t, false>(params, nullptr);
     // 把output转换到cpu上
     o.to_cpu();
+
+    // 执行1000次统计用时
+    auto main_process = [&]() {
+        run_mha_fwd_hdim128<cutlass::bfloat16_t, false>(params, nullptr);   
+    };
+    // Warm up
+    time_profile(main_process, 10);
+    // 正式计时
+    auto total_time = time_profile(main_process, 1000); 
+
+    // 打印耗时
+    printf("Total time: %u ms\n", total_time);
+
     // 打印output的前10个元素
     for (int i = 0; i < 10; i++) {
         std::cout << ((float*)o.data_ptr)[i] << " ";
