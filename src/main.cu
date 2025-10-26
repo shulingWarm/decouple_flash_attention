@@ -15,6 +15,8 @@ void init_params(flash::Flash_fwd_params& params,
     SimpleTensor& o,
     SimpleTensor& softmax_lse // softmax的中间计算结果
 ) {
+    // 把参数内容指定成空的
+    params = {};
     // 设置bf16
     params.is_bf16 = true;
     // 设置q,k,v的指针
@@ -28,7 +30,7 @@ void init_params(flash::Flash_fwd_params& params,
     params.q_head_stride = q.get_stride(-2);
     params.k_head_stride = k.get_stride(-2);
     params.v_head_stride = v.get_stride(-2);
-    params.o_ptr = o.data_ptr;
+    params.o_ptr = o.cuda_ptr;
     params.o_row_stride = o.get_stride(-3);
     params.o_head_stride = o.get_stride(-2);
 
@@ -37,6 +39,17 @@ void init_params(flash::Flash_fwd_params& params,
     params.k_batch_stride = k.get_stride(0);
     params.v_batch_stride = v.get_stride(0);
     params.o_batch_stride = o.get_stride(0);
+
+    // 参考flash attention里面原本的实现，直接写死成1
+    params.num_splits = 1;
+    // 其他没有用到的参数初始化成0
+    params.knew_batch_stride = 0;
+    params.knew_head_stride = 0;
+    params.knew_row_stride = 0;
+    params.vnew_batch_stride = 0;
+    params.vnew_head_stride = 0;
+    params.vnew_row_stride = 0;
+    params.block_table_batch_stride = 0;
 
     // 这三个东西初始化成空指针
     // cu_seqlens_q cu_seqlens_k seqused_k
@@ -101,7 +114,68 @@ void init_params(flash::Flash_fwd_params& params,
     params.seqlenq_ngroups_swapped = false;
 }
 
+void print_params(Flash_fwd_params &params) { 
+    // 打印除指针之外的参数内容
+    printf("params: \n");
+    printf("seqlen_q = %d\n", params.seqlen_q);
+    printf("seqlen_k = %d\n", params.seqlen_k);
+    printf("is_bf16 = %d\n", params.is_bf16);
+    printf("is_causal = %d\n", params.is_causal);
+    printf("window_size_left = %d\n", params.window_size_left);
+    printf("window_size_right = %d\n", params.window_size_right);
+    printf("p_dropout = %f\n", params.p_dropout);
+    printf("softcap = %f\n", params.softcap);
+    printf("scale_softmax = %f\n", params.scale_softmax);
+    printf("scale_softmax_log2 = %f\n", params.scale_softmax_log2);
+    printf("rp_dropout = %f\n", params.rp_dropout);
+    printf("scale_softmax_rp_dropout = %f\n", params.scale_softmax_rp_dropout);
+    printf("num_splits = %d\n", params.num_splits);
+    // 打印 o_batch_stride o_row_stride o_head_stride
+    printf("o_batch_stride = %ld\n", params.o_batch_stride);
+    printf("o_head_stride = %ld\n", params.o_head_stride);
+    printf("o_row_stride = %ld\n", params.o_row_stride);
+    // 打印 knew_batch_stride knew_head_stride knew_row_stride 
+    printf("knew_batch_stride = %ld\n", params.knew_batch_stride);
+    printf("knew_head_stride = %ld\n", params.knew_head_stride);
+    printf("knew_row_stride = %ld\n", params.knew_row_stride);
+    printf("vnew_batch_stride = %ld\n", params.vnew_batch_stride);
+    printf("vnew_head_stride = %ld\n", params.vnew_head_stride);
+    printf("vnew_row_stride = %ld\n", params.vnew_row_stride);
+    printf("q_batch_stride = %ld\n", params.q_batch_stride);
+    printf("q_head_stride = %ld\n", params.q_head_stride);
+    printf("q_row_stride = %ld\n", params.q_row_stride);
+    printf("k_batch_stride = %ld\n", params.k_batch_stride);
+    printf("k_head_stride = %ld\n", params.k_head_stride);
+    printf("k_row_stride = %ld\n", params.k_row_stride);
+    printf("v_batch_stride = %ld\n", params.v_batch_stride);
+    printf("v_head_stride = %ld\n", params.v_head_stride);
+    printf("v_row_stride = %ld\n", params.v_row_stride);
+    printf("block_table_batch_stride = %ld\n", params.block_table_batch_stride);
+    // 打印 h h_k
+    printf("h = %d\n", params.h);
+    printf("h_k = %d\n", params.h_k);
+    printf("h_h_k_ratio = %d\n", params.h_h_k_ratio);
 
+    // 打印所有的指针
+    printf("o_ptr = %p\n", params.o_ptr);
+    printf("oaccum_ptr = %p\n", params.oaccum_ptr);
+    printf("p_ptr = %p\n", params.p_ptr);
+    printf("softmax_lse_ptr = %p\n", params.softmax_lse_ptr);
+    printf("softmax_lseaccum_ptr = %p\n", params.softmax_lseaccum_ptr);
+    printf("cu_seqlens_q = %p\n", params.cu_seqlens_q);
+    printf("cu_seqlens_k = %p\n", params.cu_seqlens_k);
+    printf("leftpad_k = %p\n", params.leftpad_k);
+    printf("seqused_k = %p\n", params.seqused_k);
+    printf("blockmask = %p\n", params.blockmask);
+    printf("knew_ptr = %p\n", params.knew_ptr);
+    printf("vnew_ptr = %p\n", params.vnew_ptr);
+    printf("rotary_cos_ptr = %p\n", params.rotary_cos_ptr);
+    printf("rotary_sin_ptr = %p\n", params.rotary_sin_ptr);
+    printf("cache_batch_idx = %p\n", params.cache_batch_idx);
+    printf("block_table = %p\n", params.block_table);
+    printf("rng_state = %p\n", params.rng_state);
+    printf("alibi_slopes_ptr = %p\n", params.alibi_slopes_ptr);
+}
 
 int main() {
     SimpleTensor q,k,v,o;
@@ -120,6 +194,7 @@ int main() {
     softmax_lse.to_cuda();
     flash::Flash_fwd_params params;
     init_params(params,q,k,v,o,softmax_lse);
+
     run_mha_fwd_hdim128<cutlass::bfloat16_t, false>(params, nullptr);
     // 把output转换到cpu上
     o.to_cpu();
