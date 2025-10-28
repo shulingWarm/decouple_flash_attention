@@ -67,3 +67,21 @@ target_include_directories(attention_main PRIVATE
     ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
     "/mnt/data/code/flash-attention/csrc/cutlass/include"
 )
+
+add_executable(copy_test 
+    src/copy_test.cu
+)
+
+# 链接CUDA库
+target_link_libraries(copy_test PRIVATE
+    cudart
+    cublas
+    cufft
+    ${TORCH_LIBRARIES}  # PyTorch核心库
+)
+
+target_include_directories(copy_test PRIVATE
+    include/
+    ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
+    "/mnt/data/code/flash-attention/csrc/cutlass/include"
+)
