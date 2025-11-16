@@ -80,7 +80,43 @@ target_link_libraries(copy_test PRIVATE
     ${TORCH_LIBRARIES}  # PyTorch核心库
 )
 
+add_executable(tensor_reorganize 
+    src/tensor_reorganize.cu
+)
+
+# 链接CUDA库
+target_link_libraries(tensor_reorganize PRIVATE
+    cudart
+    cublas
+    cufft
+    ${TORCH_LIBRARIES}  # PyTorch核心库
+)
+
+target_include_directories(tensor_reorganize PRIVATE
+    include/
+    ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
+    "/mnt/data/code/flash-attention/csrc/cutlass/include"
+)
+
 target_include_directories(copy_test PRIVATE
+    include/
+    ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
+    "/mnt/data/code/flash-attention/csrc/cutlass/include"
+)
+
+add_executable(tile_copy_test 
+    src/tile_copy_test.cu
+)
+
+# 链接CUDA库
+target_link_libraries(tile_copy_test PRIVATE
+    cudart
+    cublas
+    cufft
+    ${TORCH_LIBRARIES}  # PyTorch核心库
+)
+
+target_include_directories(tile_copy_test PRIVATE
     include/
     ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
     "/mnt/data/code/flash-attention/csrc/cutlass/include"
