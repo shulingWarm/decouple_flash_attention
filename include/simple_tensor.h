@@ -61,6 +61,14 @@ public:
         data_ptr = new char[total_elem_num * get_elem_size(this->data_type)];
     }
 
+    // 打印tensor的shape
+    void print_shape() const {
+        std::cout << "Shape: ";
+        for(auto each_dim : shape)
+            std::cout << each_dim << " ";
+        std::cout << std::endl;
+    }
+
     // 获取指定维度的步长（以元素个数为单位）
     // dim可以为负数，例如-1表示最后一个维度
     uint32_t get_stride(int id_dim) const {
