@@ -34,3 +34,13 @@ public:
 
 
 
+// 用于随机初始化CPU矩阵的函数
+template<class T>
+void init_matrix(T *matrix, int rows, int cols, UniformRandomGenerator& generator) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            matrix[i * cols + j] = (T)generator.generate(-0.5, 0.5);
+        }
+        std::cout<<std::endl;
+    }
+}

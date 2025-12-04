@@ -171,3 +171,21 @@ target_include_directories(mma_example PRIVATE
     ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
     "/mnt/data/code/flash-attention/csrc/cutlass/include"
 )
+
+add_executable(mma_compare 
+    src/mma_compare.cu
+)
+
+# 链接CUDA库
+target_link_libraries(mma_compare PRIVATE
+    cudart
+    cublas
+    cufft
+    ${TORCH_LIBRARIES}  # PyTorch核心库
+)
+
+target_include_directories(mma_compare PRIVATE
+    include/
+    ${TORCH_INCLUDE_DIRS}  # PyTorch头文件
+    "/mnt/data/code/flash-attention/csrc/cutlass/include"
+)

@@ -10,20 +10,6 @@ static constexpr int M = 16;
 static constexpr int N = 8;
 static constexpr int K = 16;
 
-// 用于随机初始化CPU矩阵的函数
-template<class T>
-void init_matrix(T *matrix, int rows, int cols, UniformRandomGenerator& generator) {
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            matrix[i * cols + j] = (T)generator.generate(-0.5, 0.5);
-            std::cout<<(float)matrix[i * cols + j]<<" ";
-        }
-        std::cout<<std::endl;
-    }
-
-    std::cout<<"-------------------------"<<std::endl;
-}
-
 // 测试ptx指令的核函数
 // A和B实际是bf16类型，只是用float类型表示这样可以一次取两个数据
 __global__ void test_ptx_kernel(u32 *A, bf16 *B, float *C, float *dst) {
