@@ -11,67 +11,40 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # 检测并设置CUDA架构
 set(CUDA_ARCH "sm_89")  # Ampere架构 (RTX 30系列/A100等)
 
-if(DISABLE_ALL_OPTIMIZATIONS)
-    message(STATUS "All optimizations disabled for debugging")
-    
-    # 禁用主机编译器优化
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O0 -g")
-    set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O0 -g -G")
-    
-    # 禁用所有CUDA优化
-    list(APPEND CUDA_OPTIONS
-        # 禁用数学优化
-        --use_fast_math=0
-        --ftz=false
-        --prec-div=true
-        --prec-sqrt=true
-        
-        # 禁用性能优化
-        --fmad=false
-        -Xptxas -O0        # PTX优化级别设为0
-        -Xptxas --disable-warnings
-        
-        # 其他调试选项
-        -keep              # 保留中间文件
-        -lineinfo          # 保留行号信息
-        -device-debug      # 设备调试信息
-    )
-    
-else()
-    # 主机编译器优化 (GCC/Clang)
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=native")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math -funroll-loops")
+# 主机编译器优化 (GCC/Clang)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math -funroll-loops")
 
-    # CUDA专用优化标志
-    list(APPEND CUDA_OPTIONS
-        # 架构相关
-        --generate-code=arch=compute_89,code=${CUDA_ARCH}
-        
-        # 数学优化
-        --use_fast_math
-        --ftz=true          # 刷新非正规浮点数到零
-        --prec-div=false    # 降低除法精度
-        --prec-sqrt=false   # 降低平方根精度
-        
-        # 性能优化
-        --fmad=true         # 启用浮点乘加
-        -Xptxas -O3        # PTX优化级别
-        -Xptxas --disable-warnings
-        --restrict          # 指针限制优化
-        
-        # 向量化与并行
-        -Xptxas -dlcm=ca   # 缓存控制
-        --maxrregcount=0    # 不限制寄存器使用
-        
-        # 其他优化
-        --default-stream per-thread
-        --extra-device-vectorization
-    )
+# CUDA专用优化标志
+list(APPEND CUDA_OPTIONS
+    # 架构相关
+    --generate-code=arch=compute_89,code=${CUDA_ARCH}
+    
+    # 数学优化
+    --use_fast_math
+    --ftz=true          # 刷新非正规浮点数到零
+    --prec-div=false    # 降低除法精度
+    --prec-sqrt=false   # 降低平方根精度
+    
+    # 性能优化
+    --fmad=true         # 启用浮点乘加
+    -Xptxas -O3        # PTX优化级别
+    -Xptxas --disable-warnings
+    -Xptxas -v
+    --restrict          # 指针限制优化
+    
+    # 向量化与并行
+    -Xptxas -dlcm=ca   # 缓存控制
+    --maxrregcount=0    # 不限制寄存器使用
+    
+    # 其他优化
+    --default-stream per-thread
+    --extra-device-vectorization
+)
 
-    # 调试信息（发布模式保留行号）
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        list(APPEND CUDA_OPTIONS -lineinfo)
-    endif()
+# 调试信息（发布模式保留行号）
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    list(APPEND CUDA_OPTIONS -lineinfo)
 endif()
 
 # 设置NVCC选项

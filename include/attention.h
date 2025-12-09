@@ -8,6 +8,9 @@
 #include "softmax.h"
 #include "mask.h"
 
+template<int SIZE>
+class IntPrint {};
+
 namespace FLASH_NAMESPACE {
 
 using namespace cute;
@@ -177,6 +180,7 @@ inline __device__ void compute_attn_1rowblock(const Params &params, const int bi
     Tensor tVgV = gmem_thr_copy_QKV.partition_S(gV);  // (VCPY, VCPY_N, VCPY_K, nblocksN)
     Tensor tVsV = gmem_thr_copy_QKV.partition_D(sV);
 
+
     // 准备用于乘累加的切片方案
     // 这里面mma的原子操作是: cute::SM80_16x8x16_F32BF16BF16F32_TN
     typename Kernel_traits::TiledMma tiled_mma;
@@ -186,7 +190,7 @@ inline __device__ void compute_attn_1rowblock(const Params &params, const int bi
     Tensor tSrQ  = thr_mma.partition_fragment_A(sQ);                           // (MMA,MMA_M,MMA_K)
     Tensor tSrK  = thr_mma.partition_fragment_B(sK);                           // (MMA,MMA_N,MMA_K)
     Tensor tOrVt  = thr_mma.partition_fragment_B(sVtNoSwizzle);                // (MMA, MMA_K,MMA_N)
-
+    
     // 返回softmax结果的时候才有效，可以忽略
     Tensor tSgS  = thr_mma.partition_C(gP);
 
@@ -460,7 +464,7 @@ inline __device__ void compute_attn_1rowblock(const Params &params, const int bi
     Tensor gO = local_tile(mO(_, bidh, _), Shape<Int<kBlockM>, Int<kHeadDim>>{},
                            make_coord(m_block, 0));  // (kBlockM, kHeadDim)
     Tensor gLSE = get_lse_tile<ElementAccum, Params, kBlockM, Is_even_MN>(params, bidb, bidh, m_block, binfo);
-
+    
     typename Kernel_traits::GmemTiledCopyO gmem_tiled_copy_O;
 
     // 这里以前写过一段debug代码，它被临时放在了这里:
